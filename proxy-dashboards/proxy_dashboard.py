@@ -91,6 +91,7 @@ def main():
                 dashboard['pages'].append(dashboard_page)
             else:
                 dashboard['widgets'] = dashboard_page['widgets']
+                del dashboard['pages']
             dashboards.append(dashboard)
 
     for dashboard in dashboards:
