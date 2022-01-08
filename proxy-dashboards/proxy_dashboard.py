@@ -108,7 +108,7 @@ def main():
                 else:
                     zapi.dashboard.update(dashboardid=d_id, widgets=dashboard['widgets'])
             else:
-                logger.error(e.error)
+                logger.error(e.error['data'])
 
     if zapi.is_authenticated and not zapi.use_api_token:
         zapi.user.logout()
