@@ -1,5 +1,6 @@
-import argparse
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
+import typing
 from pyzabbix import ZabbixAPI, ZabbixAPIException
 from requests import Session
 from enum import Enum
@@ -7,9 +8,9 @@ from semantic_version import Version
 import urllib3
 import logging
 import sys
+from typing import Optional
 
 
-logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +23,7 @@ class CretaionMode(str, Enum):
     SINGLE = 'single'
 
 
-def make_zabbix_session(args: argparse.Namespace) -> ZabbixAPI:
+def make_zabbix_session(args: Namespace) -> ZabbixAPI:
     s = Session()
     if args.no_verify_ssl:
         s.verify = False
@@ -45,16 +46,20 @@ def select_creation_mode(mode: str, zabbix_version: Version) -> CretaionMode:
     return creation_mode
 
 
-def parse_args() -> argparse.Namespace:
-    from argparse import ArgumentParser
-    from pathlib import Path
-    parser = ArgumentParser(Path(__file__).name, description="generate proxies yo", epilog="Copyright Robert Szulist")
+def parse_args() -> Namespace:
+    parser = ArgumentParser(
+        Path(__file__).name,
+        description="This script will generate performance dashboards for all proxies contained in the specified group.",
+        epilog="Copyright Robert Szulist"
+    )
+
     zabbix_group = parser.add_argument_group('Zabbix connection')
     zabbix_group.add_argument('-z', '--zabbix-api', help="Zabbix API URL", default="http:/localhost", required=True)
     zabbix_group.add_argument('-u', '--username', help="Zabbix user")
     zabbix_group.add_argument('-p', '--password', help="Zabbix user password")
     zabbix_group.add_argument('-t', '--token', help="Zabbix API token")
     zabbix_group.add_argument('-g', '--proxy-group',  help="Name of hostgroup containing proxies", required=True)
+
     creation = parser.add_argument_group('Dashboard creation options')
     creation.add_argument(
         '-m', '--creation-mode',
@@ -63,18 +68,21 @@ def parse_args() -> argparse.Namespace:
         default=CretaionMode.PAGED.value
     )
     creation.add_argument('-f', '--force', help="Force update if dashboard already exists", action='store_true')
+
     logs = parser.add_argument_group('Logging')
     logs.add_argument('-o', '--output', help="Where to write log output", choices=('stdout', 'file'), default='stdout')
     logs.add_argument('-F', '--file', help="Log file path. Required if output is `file`")
     logs.add_argument('-l', '--level', help="Logger log level", choices=('debug', 'info', 'warning', 'error'), default='info')
+
     other = parser.add_argument_group('Other')
     other.add_argument('-k', '--no-verify-ssl', help="Verify SSL certificate", action='store_true')
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
+    logging.captureWarnings(True)
     numeric_level = getattr(logging, args.level.upper(), None)
     if args.output == 'file':
         filename = Path(args.file)
@@ -91,7 +99,11 @@ def main():
         logger.critical(f"Operation failed due do unexpected Zabbix version: {e}")
         exit(1)
 
-    proxies = get_proxies(zapi, 'Zabbix proxies')
+    proxies = get_proxies(zapi, args.proxy_group)
+    if proxies is None:
+        exit(2)
+    elif not proxies:
+        logger.warning(f"Host group '{args.proxy_group}' is empty")
 
     dashboards = []
     if creation_mode is CretaionMode.PAGED:
@@ -132,12 +144,16 @@ def main():
         zapi.user.logout()
 
 
-def get_proxies(zapi: ZabbixAPI, proxy_group) -> list:
-    proxies = zapi.hostgroup.get(filter={'name': proxy_group}, selectHosts=['name', 'hostid'])[0]
+def get_proxies(zapi: ZabbixAPI, proxy_group: str) -> Optional[list]:
+    try:
+        proxies = zapi.hostgroup.get(filter={'name': proxy_group}, selectHosts=['name', 'hostid'])[0]
+    except IndexError:
+        logger.error(f"Host group '{proxy_group}' doesn't exist!")
+        return
     return [proxy for proxy in proxies['hosts']]
 
 
-def generate_dashboard(dashboard_name: str):
+def generate_dashboard(dashboard_name: str) -> dict:
     return {
         "name": f"{dashboard_name}",
         "userid": "1",
