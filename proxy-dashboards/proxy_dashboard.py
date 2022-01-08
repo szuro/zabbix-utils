@@ -47,18 +47,22 @@ def parse_args() -> argparse.Namespace:
     from argparse import ArgumentParser
     from pathlib import Path
     parser = ArgumentParser(Path(__file__).name, description="generate proxies yo", epilog="Copyright Robert Szulist")
-    parser.add_argument('-z', '--zabbix-api', help="Zabbix API URL", default="http:/localhost", required=True)
-    parser.add_argument('-u', '--username', help="Zabbix user")
-    parser.add_argument('-p', '--password', help="Zabbix user password")
-    parser.add_argument('-t', '--token', help="Zabbix API token")
-    parser.add_argument('-g', '--proxy-group',  help="Name of hostgroup containing proxies", required=True)
-    parser.add_argument(
+    zabbix_group = parser.add_argument_group('Zabbix connection')
+    zabbix_group.add_argument('-z', '--zabbix-api', help="Zabbix API URL", default="http:/localhost", required=True)
+    zabbix_group.add_argument('-u', '--username', help="Zabbix user")
+    zabbix_group.add_argument('-p', '--password', help="Zabbix user password")
+    zabbix_group.add_argument('-t', '--token', help="Zabbix API token")
+    zabbix_group.add_argument('-g', '--proxy-group',  help="Name of hostgroup containing proxies", required=True)
+    creation = parser.add_argument_group('Dashboard creation options')
+    creation.add_argument(
         '-m', '--creation-mode',
-        help="Create a single dashboard with page per proxy or multiple dashboards (dashboard per proxy)", 
+        help="Create a single dashboard with page per proxy or multiple dashboards (dashboard per proxy)",
         choices=[mode.value for mode in CretaionMode.__members__.values()],
         default=CretaionMode.PAGED.value
     )
-    parser.add_argument('-k', '--no-verify-ssl', help="Verify SSL certificate", action='store_true')
+    creation.add_argument('-f', '--force', help="Force update if dashboard already exists", action='store_true')
+    other = parser.add_argument_group('Other')
+    other.add_argument('-k', '--no-verify-ssl', help="Verify SSL certificate", action='store_true')
     return parser.parse_args()
 
 
@@ -93,7 +97,18 @@ def main():
         try:
             zapi.dashboard.create(dashboard)
         except ZabbixAPIException as e:
-            logger.error(e.error)
+            if args.force:
+                d_name = dashboard['name']
+                logger.info(f"Forcing update of {d_name}")
+
+                existing_dashboard = zapi.dashboard.get(filter={'name': d_name}, output=['dashboardid'])
+                d_id = existing_dashboard[0]['dashboardid']
+                if zapi.version >= VERSION_SUPPORTING_PAGES:
+                    zapi.dashboard.update(dashboardid=d_id, pages=dashboard['pages'])
+                else:
+                    zapi.dashboard.update(dashboardid=d_id, widgets=dashboard['widgets'])
+            else:
+                logger.error(e.error)
 
     if zapi.is_authenticated and not zapi.use_api_token:
         zapi.user.logout()
