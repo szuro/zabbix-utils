@@ -1,10 +1,12 @@
 import argparse
+from pathlib import Path
 from pyzabbix import ZabbixAPI, ZabbixAPIException
 from requests import Session
 from enum import Enum
 from semantic_version import Version
 import urllib3
 import logging
+import sys
 
 
 logging.captureWarnings(True)
@@ -61,6 +63,10 @@ def parse_args() -> argparse.Namespace:
         default=CretaionMode.PAGED.value
     )
     creation.add_argument('-f', '--force', help="Force update if dashboard already exists", action='store_true')
+    logs = parser.add_argument_group('Logging')
+    logs.add_argument('-o', '--output', help="Where to write log output", choices=('stdout', 'file'), default='stdout')
+    logs.add_argument('-F', '--file', help="Log file path. Required if output is `file`")
+    logs.add_argument('-l', '--level', help="Logger log level", choices=('debug', 'info', 'warning', 'error'), default='info')
     other = parser.add_argument_group('Other')
     other.add_argument('-k', '--no-verify-ssl', help="Verify SSL certificate", action='store_true')
     return parser.parse_args()
@@ -68,6 +74,15 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+
+    numeric_level = getattr(logging, args.level.upper(), None)
+    if args.output == 'file':
+        filename = Path(args.file)
+        logging.basicConfig(filename=filename, level=numeric_level)
+    else:
+        logging.basicConfig(stream=sys.stdout, level=numeric_level)
+
+    logger.info("Starting the creation of dashboards")
 
     try:
         zapi = make_zabbix_session(args)
@@ -95,11 +110,12 @@ def main():
             dashboards.append(dashboard)
 
     for dashboard in dashboards:
+        d_name = dashboard['name']
         try:
             zapi.dashboard.create(dashboard)
+            logger.info(f"Created: {d_name}")
         except ZabbixAPIException as e:
             if args.force:
-                d_name = dashboard['name']
                 logger.info(f"Forcing update of {d_name}")
 
                 existing_dashboard = zapi.dashboard.get(filter={'name': d_name}, output=['dashboardid'])
@@ -108,6 +124,7 @@ def main():
                     zapi.dashboard.update(dashboardid=d_id, pages=dashboard['pages'])
                 else:
                     zapi.dashboard.update(dashboardid=d_id, widgets=dashboard['widgets'])
+                logger.info(f"Updated: {d_name}")
             else:
                 logger.error(e.error['data'])
 
