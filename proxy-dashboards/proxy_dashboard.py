@@ -39,6 +39,15 @@ def make_zabbix_session(args: Namespace) -> ZabbixAPI:
     return zapi
 
 
+def get_user_id(zapi: ZabbixAPI) -> str:
+    user = None
+    if zapi.use_api_token:
+        user = zapi.token.get(token=zapi.auth)[0]['userid']
+    else:
+        user = zapi.check_authentication()['userid']
+    return user
+
+
 def select_creation_mode(mode: str, zabbix_version: Version) -> CretaionMode:
     creation_mode = CretaionMode(mode)
     if creation_mode is CretaionMode.PAGED and zabbix_version < VERSION_SUPPORTING_PAGES:
@@ -106,13 +115,14 @@ def main() -> None:
         logger.warning(f"Host group '{args.proxy_group}' is empty")
 
     dashboards = []
+    owner = get_user_id(zapi)
     if creation_mode is CretaionMode.PAGED:
-        dashboard = generate_dashboard("Zabbix proxies health")
+        dashboard = generate_dashboard("Zabbix proxies health", owner)
         dashboard['pages'] = [generate_dashboard_page(proxy) for proxy in proxies]
         dashboards.append(dashboard)
     elif creation_mode is CretaionMode.SINGLE:
         for proxy in proxies:
-            dashboard = generate_dashboard(f"Zabbix proxy health: {proxy['name']}")
+            dashboard = generate_dashboard(f"Zabbix proxy health: {proxy['name']}", owner)
             dashboard_page = generate_dashboard_page(proxy)
             if zapi.version >= VERSION_SUPPORTING_PAGES:
                 dashboard['pages'].append(dashboard_page)
@@ -153,10 +163,10 @@ def get_proxies(zapi: ZabbixAPI, proxy_group: str) -> Optional[list]:
     return [proxy for proxy in proxies['hosts']]
 
 
-def generate_dashboard(dashboard_name: str) -> dict:
+def generate_dashboard(dashboard_name: str, owner_id: str) -> dict:
     return {
         "name": f"{dashboard_name}",
-        "userid": "1",
+        "userid": owner_id,
         "private": "1",
         "display_period": "30",
         "auto_start": "1",
