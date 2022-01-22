@@ -23,6 +23,11 @@ class CretaionMode(str, Enum):
     SINGLE = 'single'
 
 
+class DashboardType(str, Enum):
+    PRIVATE = 'private'
+    PUBLIC = 'public'
+
+
 def make_zabbix_session(args: Namespace) -> ZabbixAPI:
     s = Session()
     if args.no_verify_ssl:
@@ -68,6 +73,13 @@ def parse_args() -> Namespace:
     zabbix_group.add_argument('-p', '--password', help="Zabbix user password")
     zabbix_group.add_argument('-t', '--token', help="Zabbix API token")
     zabbix_group.add_argument('-g', '--proxy-group',  help="Name of hostgroup containing proxies", required=True)
+
+    sharing = parser.add_argument_group('Dashboard sharing')
+    sharing.add_argument('-T', '--type',
+        help="Make dashboard private or public",
+        choices=[mode.value for mode in DashboardType.__members__.values()],
+        default=DashboardType.PRIVATE.value
+    )
 
     creation = parser.add_argument_group('Dashboard creation options')
     creation.add_argument(
@@ -117,12 +129,12 @@ def main() -> None:
     dashboards = []
     owner = get_user_id(zapi)
     if creation_mode is CretaionMode.PAGED:
-        dashboard = generate_dashboard("Zabbix proxies health", owner)
+        dashboard = generate_dashboard("Zabbix proxies health", owner, DashboardType(args.type))
         dashboard['pages'] = [generate_dashboard_page(proxy) for proxy in proxies]
         dashboards.append(dashboard)
     elif creation_mode is CretaionMode.SINGLE:
         for proxy in proxies:
-            dashboard = generate_dashboard(f"Zabbix proxy health: {proxy['name']}", owner)
+            dashboard = generate_dashboard(f"Zabbix proxy health: {proxy['name']}", owner, DashboardType(args.type))
             dashboard_page = generate_dashboard_page(proxy)
             if zapi.version >= VERSION_SUPPORTING_PAGES:
                 dashboard['pages'].append(dashboard_page)
@@ -163,11 +175,11 @@ def get_proxies(zapi: ZabbixAPI, proxy_group: str) -> Optional[list]:
     return [proxy for proxy in proxies['hosts']]
 
 
-def generate_dashboard(dashboard_name: str, owner_id: str) -> dict:
+def generate_dashboard(dashboard_name: str, owner_id: str, dashboard_type: DashboardType) -> dict:
     return {
         "name": f"{dashboard_name}",
         "userid": owner_id,
-        "private": "1",
+        "private": "1" if dashboard_type is DashboardType.PRIVATE else '0',
         "display_period": "30",
         "auto_start": "1",
         "pages": []
