@@ -1,0 +1,7 @@
+---
+zabbix:
+  url: 'http://zabbix.example.com'
+  token: api_token
+templates:
+  - https://git.example.com/my_template.yaml
+  - https://git.example.com/my_template2.xml
