@@ -1,5 +1,5 @@
 import requests
-from pyzabbix import ZabbixAPI
+from pyzabbix import ZabbixAPI, ZabbixAPIException
 import yaml
 import semantic_version
 import urllib3
@@ -60,12 +60,14 @@ def upload_template(zapi: ZabbixAPI, template: str, format: str):
                 "createMissing": True,
                 "updateExisting": True
             }
-
-    zapi.confimport(
-        confformat=format,
-        rules=rules,
-        source=template,
-    )
+    try:
+        zapi.confimport(
+            confformat=format,
+            rules=rules,
+            source=template,
+        )
+    except ZabbixAPIException:
+        print("Zabbix upload failed")
 
 
 def infer_type(url: str) -> str:
@@ -98,9 +100,9 @@ def main():
             t = get_upstream_template(template)
             try:
                 t_type = infer_type(template)
+                upload_template(zapi, t, t_type)
             except ValueError:
                 print(f'Skipping due to error: {template}')
-            upload_template(zapi, t, t_type)
 
 
 if __name__ == "__main__":
