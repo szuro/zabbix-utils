@@ -1,6 +1,5 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-import typing
 from pyzabbix import ZabbixAPI, ZabbixAPIException
 from requests import Session
 from enum import Enum
