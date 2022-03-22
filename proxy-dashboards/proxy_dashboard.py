@@ -202,13 +202,13 @@ def generate_dashboard_page(proxy: dict) -> dict:
             "view_mode": "0",
             "fields": [
                 {"type": "1", "name": "ds.hosts.0.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix queue"},
+                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix Proxy: queue"},
                 {"type": "1", "name": "ds.color.0", "value": "B0AF07"},
                 {"type": "1", "name": "ds.hosts.1.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.1.0","value": "Zabbix queue over 10 minutes"},
+                {"type": "1", "name": "ds.items.1.0","value": "Zabbix Proxy: Queue over 10 minutes"},
                 {"type": "1", "name": "ds.color.1", "value": "E53935"},
                 {"type": "1", "name": "ds.hosts.2.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.2.0", "value": "Zabbix preprocessing queue"},
+                {"type": "1", "name": "ds.items.2.0", "value": "Zabbix Proxy: Preprocessing queue"},
                 {"type": "1", "name": "ds.color.2", "value": "0275B8"},
                 {"type": "1", "name": "lefty_min", "value": "0"},
                 {"type": "1", "name": "problemhosts.0", "value": f"{proxy_name}"},
@@ -237,7 +237,7 @@ def generate_dashboard_page(proxy: dict) -> dict:
             "view_mode": "0",
             "fields": [
                 {"type": "1", "name": "ds.hosts.0.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.0.0", "value": "Number of processed *values per second"},
+                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix Proxy: Number of processed *values per second"},
                 {"type": "1", "name": "ds.color.0", "value": "00BFFF"},
                 {"type": "1", "name": "lefty_min", "value": "0"},
                 {"type": "1", "name": "problemhosts.0", "value": f"{proxy_name}"},
@@ -258,7 +258,7 @@ def generate_dashboard_page(proxy: dict) -> dict:
             "view_mode": "0",
             "fields": [
                 {"type": "1", "name": "ds.hosts.0.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.0.0", "value": "Utilization of * data collector *"},
+                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix Proxy: Utilization of * data collector *"},
                 {"type": "1", "name": "ds.color.0", "value": "E57373"},
                 {"type": "1", "name": "lefty_min", "value": "0"},
                 {"type": "1", "name": "lefty_max", "value": "100"},
@@ -280,7 +280,7 @@ def generate_dashboard_page(proxy: dict) -> dict:
             "view_mode": "0",
             "fields": [
                 {"type": "1", "name": "ds.hosts.0.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.0.0", "value": "Utilization of * internal *"},
+                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix Proxy: Utilization of * internal *"},
                 {"type": "1", "name": "ds.color.0", "value": "E57373"},
                 {"type": "1", "name": "lefty_min", "value": "0"},
                 {"type": "1", "name": "lefty_max", "value": "100"},
@@ -302,7 +302,7 @@ def generate_dashboard_page(proxy: dict) -> dict:
             "view_mode": "0",
             "fields": [
                 {"type": "1", "name": "ds.hosts.0.0", "value": f"{proxy_name}"},
-                {"type": "1", "name": "ds.items.0.0", "value": r"Zabbix*cache*% used"},
+                {"type": "1", "name": "ds.items.0.0", "value": "Zabbix Proxy: *cache, % used"},
                 {"type": "1", "name": "ds.color.0", "value": "4DB6AC"},
                 {"type": "1", "name": "lefty_min", "value": "0"},
                 {"type": "1", "name": "lefty_max", "value": "100"},
